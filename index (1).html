@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#123c2d">
+  <meta name="description" content="जंगल रक्षक आर्केड — बच्चों के लिए मज़ेदार ऑफलाइन मिनी-गेम।">
+  <title>जंगल रक्षक आर्केड</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #fff9db;
+      --muted: #c1e0c3;
+      --green: #123c2d;
+      --panel: #1c563e;
+      --lime: #c4f06b;
+      --yellow: #ffd967;
+      --pink: #ff83af;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(ellipse at 15% 5%, #34724b 0, transparent 38%),
+        radial-gradient(ellipse at 90% 80%, #254e6e 0, transparent 38%),
+        linear-gradient(145deg, #102d26, #142f45);
+    }
+    button { font: inherit; }
+    .wrap { width: min(1050px, 100%); margin: auto; padding: 18px; }
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon { font-size: 2.5rem; filter: drop-shadow(0 3px 4px #0006); }
+    h1 { margin: 0; font-size: clamp(1.35rem, 4vw, 2rem); }
+    .subtitle { color: var(--muted); font-size: .9rem; }
+    .stats { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pill {
+      background: #ffffff19; border: 1px solid #ffffff24;
+      padding: 8px 12px; border-radius: 999px; font-weight: 800;
+    }
+    .panel {
+      background: #153f33e8; border: 1px solid #ffffff24; border-radius: 22px;
+      padding: clamp(14px, 3vw, 24px); box-shadow: 0 16px 40px #0003;
+    }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .btn, .level, .answer {
+      border: 0; color: #173327; background: var(--lime); border-radius: 14px;
+      padding: 11px 16px; font-weight: 900; cursor: pointer;
+      box-shadow: 0 4px 0 #7da63a; transition: transform .12s, filter .12s;
+    }
+    .btn:hover, .level:hover, .answer:hover { filter: brightness(1.08); transform: translateY(-2px); }
+    .btn:active, .level:active, .answer:active { transform: translateY(2px); box-shadow: none; }
+    .btn.secondary { background: #fff2bd; box-shadow: 0 4px 0 #b89a4c; }
+    .btn.pink { background: var(--pink); box-shadow: 0 4px 0 #b94472; }
+    .btn:disabled { opacity: .48; cursor: not-allowed; transform: none; }
+    .section-title { margin: 6px 0 14px; font-size: 1.25rem; }
+    .map-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 12px;
+    }
+    .level {
+      min-height: 112px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px; font-size: 1rem;
+      background: linear-gradient(145deg, #d6ff88, #a9e85f);
+    }
+    .level.locked { background: #82908a; box-shadow: 0 4px 0 #57615c; color: #29332e; }
+    .level .emoji { font-size: 1.7rem; }
+    .level small { opacity: .78; }
+    .game-area { display: none; }
+    .game-area.active { display: block; }
+    canvas {
+      width: 100%; height: auto; display: block; aspect-ratio: 16 / 9;
+      border-radius: 18px; background: #163f38; touch-action: none;
+      border: 2px solid #ffffff33;
+    }
+    .gamebar {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      flex-wrap: wrap; margin: 12px 0;
+    }
+    .game-controls { display: flex; gap: 8px; }
+    .hint { color: var(--muted); text-align: center; margin: 10px 0 0; font-size: .95rem; }
+    .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+    .shop-item {
+      background: #ffffff12; border: 1px solid #ffffff24;
+      border-radius: 16px; padding: 16px; text-align: center;
+    }
+    .shop-item .emoji { font-size: 2.4rem; }
+    .shop-item h3 { margin: 5px 0; }
+    .shop-item p { color: var(--muted); margin: 5px 0 12px; }
+    .notice { min-height: 1.4em; color: var(--yellow); font-weight: 700; }
+    .footer { margin-top: 16px; text-align: center; color: #c1e0c3b0; font-size: .82rem; }
+    @media (max-width: 520px) {
+      .wrap { padding: 12px; }
+      .brand-icon { font-size: 2rem; }
+      .game-controls { width: 100%; }
+      .game-controls button { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">🌴</span>
+        <div>
+          <h1>जंगल रक्षक आर्केड</h1>
+          <div class="subtitle">दौड़ो, सोचो, निशाना लगाओ — जंगल बचाओ!</div>
+        </div>
+      </div>
+      <div class="stats">
+        <span class="pill">🪙 <span id="coins">0</span></span>
+        <span class="pill">🏆 रिकॉर्ड <span id="best">0</span></span>
+      </div>
+    </header>
+
+    <nav class="toolbar" aria-label="मुख्य मेन्यू">
+      <button class="btn" id="mapBtn">🗺️ लेवल मैप</button>
+      <button class="btn secondary" id="shopBtn">🎁 दुकान</button>
+      <button class="btn secondary" id="soundBtn" aria-pressed="true">🔊 आवाज़ चालू</button>
+    </nav>
+
+    <section class="panel" id="mapView">
+      <h2 class="section-title">अपना अगला मिशन चुनो!</h2>
+      <p class="subtitle">हर राउंड छोटा है। हर कोशिश तुम्हें नए रिकॉर्ड और सितारों के करीब ले जाएगी।</p>
+      <div class="map-grid" id="levelGrid"></div>
+    </section>
+
+    <section class="panel" id="shopView" hidden>
+      <h2 class="section-title">🎁 जंगल रक्षक की दुकान</h2>
+      <p class="subtitle">कॉइन्स से नया साथी चुनो। खरीदी हुई चीज़ें इसी डिवाइस पर सेव रहती हैं।</p>
+      <div class="shop-grid" id="shopGrid"></div>
+      <p class="notice" id="shopNotice" aria-live="polite"></p>
+    </section>
+
+    <section class="panel game-area" id="gameView">
+      <div class="gamebar">
+        <strong id="roundTitle">मिशन</strong>
+        <span class="pill">⏱️ <span id="timer">35</span></span>
+        <span class="pill">⭐ <span id="roundScore">0</span></span>
+        <div class="game-controls">
+          <button class="btn secondary" id="leftBtn" aria-label="बाएँ">⬅️</button>
+          <button class="btn secondary" id="rightBtn" aria-label="दाएँ">➡️</button>
+          <button class="btn pink" id="quitBtn">मैप</button>
+        </div>
+      </div>
+      <canvas id="gameCanvas" width="960" height="540" aria-label="गेम स्क्रीन"></canvas>
+      <p class="hint" id="hint">कीबोर्ड: ← → या A/D • मोबाइल: स्वाइप या बटन</p>
+    </section>
+
+    <section class="panel" id="resultView" hidden></section>
+    <p class="footer">ऑफलाइन खेलने के लिए पहले एक बार इस पेज को ऑनलाइन खोलें और फिर होम स्क्रीन पर जोड़ें।</p>
+  </main>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+  const STORE_KEY = "jungle-rakshak-v1";
+  const defaultState = {
+    coins: 0, best: 0, stars: Array(10).fill(0), scores: Array(10).fill(0),
+    unlocked: ["🐯"], character: "🐯", sound: true
+  };
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch (_) {}
+  const state = Object.assign({}, defaultState, saved || {});
+  state.stars = Array.from({length: 10}, (_, i) => Number(state.stars?.[i] || 0));
+  state.scores = Array.from({length: 10}, (_, i) => Number(state.scores?.[i] || 0));
+  state.unlocked = Array.isArray(state.unlocked) ? state.unlocked : ["🐯"];
+
+  const levels = [
+    ["हरी घाटी", "🌿"], ["बंदर पुल", "🐒"], ["फूलों का वन", "🌼"],
+    ["नदी की छलाँग", "🌊"], ["जुगनू रात", "✨"], ["जंगल मंदिर", "🛕"],
+    ["चाँद बेस", "🌙"], ["तारों का रास्ता", "🚀"], ["नेबुला दौड़", "🪐"],
+    ["आकाश रक्षक", "🌌"]
+  ];
+  const modes = ["runner", "brain", "target"];
+  const modeNames = {runner: "रिफ्लेक्स रनर", brain: "ब्रेन चैलेंज", target: "टारगेट आर्केड"};
+  const shop = [
+    {emoji:"🦊", name:"चालाक लोमड़ी", cost:30},
+    {emoji:"🐼", name:"पांडा दोस्त", cost:55},
+    {emoji:"🦁", name:"शेर रक्षक", cost:85},
+    {emoji:"🐸", name:"जंगल मेंढक", cost:110},
+    {emoji:"👩‍🚀", name:"स्पेस एक्सप्लोरर", cost:140}
+  ];
+
+  const mapView = $("mapView"), shopView = $("shopView"), gameView = $("gameView");
+  const resultView = $("resultView");
+  const canvas = $("gameCanvas"), ctx = canvas.getContext("2d");
+  let game = null, animation = 0, lastTime = 0, audioCtx = null;
+  let pointerStart = null;
+
+  function persist() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (_) {}
+    $("coins").textContent = state.coins;
+    $("best").textContent = state.best;
+    $("soundBtn").textContent = state.sound ? "🔊 आवाज़ चालू" : "🔇 आवाज़ बंद";
+    $("soundBtn").setAttribute("aria-pressed", String(state.sound));
+  }
+  function show(which) {
+    mapView.hidden = which !== "map";
+    shopView.hidden = which !== "shop";
+    gameView.classList.toggle("active", which === "game");
+    resultView.hidden = which !== "result";
+  }
+  function renderMap() {
+    const grid = $("levelGrid");
+    grid.innerHTML = "";
+    const unlockedThrough = Math.min(9, Math.max(0, state.stars.findIndex((s) => s === 0)));
+    levels.forEach(([name, icon], i) => {
+      const locked = i > unlockedThrough;
+      const btn = document.createElement("button");
+      btn.className = "level" + (locked ? " locked" : "");
+      btn.disabled = locked;
+      btn.innerHTML = `<span class="emoji">${icon}</span><strong>लेवल ${i + 1}: ${name}</strong>
+        <small>${locked ? "🔒 पहले पिछला लेवल पूरा करो" : `${"⭐".repeat(state.stars[i]) || "☆ ☆ ☆"}  •  रिकॉर्ड ${state.scores[i]}`}</small>`;
+      btn.addEventListener("click", () => startGame(i));
+      grid.appendChild(btn);
+    });
+  }
+  function renderShop() {
+    $("shopGrid").innerHTML = "";
+    shop.forEach(item => {
+      const owned = state.unlocked.includes(item.emoji);
+      const selected = state.character === item.emoji;
+      const article = document.createElement("article");
+      article.className = "shop-item";
+      article.innerHTML = `<div class="emoji">${item.emoji}</div><h3>${item.name}</h3>
+        <p>${owned ? (selected ? "अभी चुना हुआ" : "तुम्हारा साथी") : `कीमत: 🪙 ${item.cost}`}</p>`;
+      const button = document.createElement("button");
+      button.className = "btn" + (owned ? " secondary" : "");
+      button.textContent = owned ? (selected ? "चुना हुआ ✓" : "चुनो") : "अनलॉक करो";
+      button.disabled = selected || (!owned && state.coins < item.cost);
+      button.addEventListener("click", () => {
+        if (owned) state.character = item.emoji;
+        else { state.coins -= item.cost; state.unlocked.push(item.emoji); state.character = item.emoji; }
+        $("shopNotice").textContent = `${item.name} अब तुम्हारी टीम में है!`;
+        persist(); renderShop();
+      });
+      article.appendChild(button);
+      $("shopGrid").appendChild(article);
+    });
+  }
+
+  function startGame(level) {
+    const mode = modes[level % modes.length];
+    game = {
+      level, mode, score: 0, time: 35, elapsed: 0, over: false,
+      lane: 1, objects: [], spawn: 0, shield: 0, combo: 0,
+      question: null, target: null, targetClock: 0, feedback: "", feedbackTime: 0
+    };
+    if (mode === "brain") newQuestion();
+    $("roundTitle").textContent = `लेवल ${level + 1}: ${levels[level][0]} — ${modeNames[mode]}`;
+    $("hint").textContent = mode === "runner"
+      ? "बाएँ/दाएँ लेन बदलो • कॉइन लो • बाधाओं से बचो"
+      : mode === "brain" ? "सही जवाब पर टैप करो — लगातार सही जवाब से कॉम्बो!"
+      : "चलते लक्ष्य पर टैप करो! हर हिट से स्कोर बढ़ेगा।";
+    $("roundScore").textContent = "0";
+    $("timer").textContent = "35";
+    show("game");
+    lastTime = performance.now();
+    cancelAnimationFrame(animation);
+    animation = requestAnimationFrame(loop);
+    sound(540, .07);
+  }
+
+  function newQuestion() {
+    const shapes = ["🔴", "🔵", "🟡", "🟢", "⭐", "🔺", "🟣", "🟠"];
+    const kind = Math.random() < .5 ? "math" : "shape";
+    let answer, text;
+    if (kind === "math") {
+      const a = 1 + Math.floor(Math.random() * 9), b = 1 + Math.floor(Math.random() * 9);
+      answer = a + b; text = `${a} + ${b} = ?`;
+    } else {
+      const a = shapes[Math.floor(Math.random() * shapes.length)];
+      answer = a; text = `इस आकृति को ढूँढो: ${a}`;
+    }
+    const choices = new Set([answer]);
+    while (choices.size < 4) {
+      choices.add(kind === "math" ? 2 + Math.floor(Math.random() * 18) : shapes[Math.floor(Math.random() * shapes.length)]);
+    }
+    game.question = {kind, text, answer, choices: [...choices].sort(() => Math.random() - .5)};
+  }
+
+  function moveLane(direction) {
+    if (!game || game.mode !== "runner" || game.over) return;
+    game.lane = Math.max(0, Math.min(2, game.lane + direction));
+    sound(350 + game.lane * 100, .04);
+  }
+
+  function answerAt(x, y) {
+    if (!game || game.over) return;
+    if (game.mode === "brain" && game.question) {
+      const startX = 155, width = 155, gap = 22, top = 330, height = 88;
+      for (let i = 0; i < 4; i++) {
+        const bx = startX + i * (width + gap);
+        if (x >= bx && x <= bx + width && y >= top && y <= top + height) {
+          const choice = game.question.choices[i];
+          if (choice === game.question.answer) {
+            game.combo++;
+            game.score += 10 + Math.min(game.combo, 8) * 2;
+            game.feedback = game.combo > 1 ? `शानदार! ${game.combo} कॉम्बो!` : "सही जवाब!";
+            sound(700 + game.combo * 40, .1);
+          } else {
+            game.combo = 0; game.feedback = "कोशिश अच्छी थी! अगला सवाल!";
+            sound(180, .12);
+          }
+          game.feedbackTime = 1.1;
+          newQuestion();
+          return;
+        }
+      }
+    } else if (game.mode === "target" && game.target) {
+      const dx = x - game.target.x, dy = y - game.target.y;
+      if (Math.hypot(dx, dy) < game.target.r + 10) {
+        game.score += 10;
+        game.feedback = "सीधा निशाना! +10";
+        game.feedbackTime = .6;
+        game.target = null;
+        sound(820, .08);
+      }
+    }
+  }
+
+  function canvasPoint(event) {
+    const rect = canvas.getBoundingClientRect();
+    return {x: (event.clientX - rect.left) * canvas.width / rect.width,
+            y: (event.clientY - rect.top) * canvas.height / rect.height};
+  }
+  canvas.addEventListener("pointerdown", e => {
+    pointerStart = {x: e.clientX, y: e.clientY};
+    canvas.setPointerCapture?.(e.pointerId);
+  });
+  canvas.addEventListener("pointerup", e => {
+    const point = canvasPoint(e);
+    if (pointerStart && Math.abs(e.clientX - pointerStart.x) > 30 && game?.mode === "runner") {
+      moveLane(e.clientX > pointerStart.x ? 1 : -1);
+    } else answerAt(point.x, point.y);
+    pointerStart = null;
+  });
+
+  function loop(now) {
+    if (!game || game.over) return;
+    const dt = Math.min(.05, (now - lastTime) / 1000 || 0);
+    lastTime = now;
+    game.time -= dt;
+    game.elapsed += dt;
+    game.feedbackTime = Math.max(0, game.feedbackTime - dt);
+
+    if (game.mode === "runner") updateRunner(dt);
+    if (game.mode === "target") updateTarget(dt);
+    $("timer").textContent = Math.max(0, Math.ceil(game.time));
+    $("roundScore").textContent = game.score;
+    draw();
+    if (game.time <= 0) finishGame();
+    else animation = requestAnimationFrame(loop);
+  }
+
+  function updateRunner(dt) {
+    game.spawn -= dt;
+    if (game.spawn <= 0) {
+      const roll = Math.random();
+      game.objects.push({lane: Math.floor(Math.random() * 3), y: -35,
+        type: roll < .55 ? "🪵" : roll < .88 ? "🪙" : "🛡️"});
+      game.spawn = .62 + Math.random() * .35;
+    }
+    const speed = 210 + Math.min(170, game.elapsed * 5);
+    for (const obj of game.objects) obj.y += speed * dt;
+    game.objects = game.objects.filter(obj => {
+      if (obj.y > 408 && obj.y < 480 && obj.lane === game.lane && !obj.hit) {
+        obj.hit = true;
+        if (obj.type === "🪙") { game.score += 5; sound(900, .05); }
+        else if (obj.type === "🛡️") { game.shield = 4; game.score += 2; sound(600, .1); }
+        else if (game.shield > 0) { game.shield = 0; sound(430, .1); }
+        else { game.score = Math.max(0, game.score - 5); game.feedback = "बचो!"; game.feedbackTime = .5; sound(150, .1); }
+      }
+      return obj.y < 570;
+    });
+    game.shield = Math.max(0, game.shield - dt);
+    if (Math.random() < dt * 2.1) game.score += 1;
+  }
+  function updateTarget(dt) {
+    game.targetClock -= dt;
+    if (!game.target || game.targetClock <= 0) {
+      game.target = {x: 150 + Math.random() * 660, y: 145 + Math.random() * 230, r: 35};
+      game.targetClock = .8 + Math.random() * .55;
+    }
+    game.target.x += Math.sin(game.elapsed * 3.2) * 1.5;
+    game.score += dt * .7;
+  }
+
+  function roundRect(x, y, w, h, r, color) {
+    ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
+  }
+  function draw() {
+    const g = game;
+    const sky = ctx.createLinearGradient(0, 0, 0, 540);
+    sky.addColorStop(0, g.level >= 6 ? "#17285d" : "#53a9a0");
+    sky.addColorStop(1, g.level >= 6 ? "#35245c" : "#b2dd75");
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, 960, 540);
+    // Decorative sky and distant jungle
+    ctx.globalAlpha = .5;
+    for (let i = 0; i < 12; i++) {
+      ctx.fillStyle = i % 2 ? "#245b49" : "#32734d";
+      ctx.beginPath(); ctx.arc(i * 95, 250 + (i % 3) * 28, 90, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = g.level >= 6 ? "#332c59" : "#386a3c";
+    ctx.fillRect(0, 340, 960, 200);
+
+    ctx.fillStyle = "#183c32"; ctx.font = "bold 28px system-ui";
+    ctx.fillText(`लेवल ${g.level + 1}  •  ${modeNames[g.mode]}`, 28, 42);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 23px system-ui";
+    ctx.fillText(`⭐ ${Math.floor(g.score)}`, 790, 42);
+
+    if (g.mode === "runner") drawRunner();
+    if (g.mode === "brain") drawBrain();
+    if (g.mode === "target") drawTarget();
+    if (g.feedbackTime > 0 && g.feedback) {
+      roundRect(300, 75, 360, 55, 18, "#142d29dd");
+      ctx.fillStyle = "#fff6a8"; ctx.textAlign = "center"; ctx.font = "bold 25px system-ui";
+      ctx.fillText(g.feedback, 480, 111); ctx.textAlign = "start";
+    }
+  }
+  function drawRunner() {
+    const laneX = [300, 480, 660];
+    ctx.fillStyle = "#c8a667";
+    ctx.beginPath(); ctx.moveTo(230, 540); ctx.lineTo(370, 340); ctx.lineTo(590, 340); ctx.lineTo(730, 540); ctx.fill();
+    ctx.strokeStyle = "#f4e3a0"; ctx.lineWidth = 5; ctx.setLineDash([20, 18]);
+    ctx.beginPath(); ctx.moveTo(420, 540); ctx.lineTo(455, 340); ctx.moveTo(540, 540); ctx.lineTo(505, 340); ctx.stroke(); ctx.setLineDash([]);
+    for (const o of game.objects) {
+      ctx.font = "42px system-ui"; ctx.textAlign = "center"; ctx.fillText(o.type, laneX[o.lane], o.y);
+    }
+    if (game.shield > 0) {
+      ctx.strokeStyle = "#8ffcff"; ctx.lineWidth = 6; ctx.beginPath();
+      ctx.arc(laneX[game.lane], 445, 45, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.font = "56px system-ui"; ctx.textAlign = "center";
+    ctx.fillText(state.character, laneX[game.lane], 465); ctx.textAlign = "start";
+    ctx.fillStyle = "#fff"; ctx.font = "17px system-ui";
+    ctx.fillText("🪙 +5     🛡️ बचाव     🪵 बाधा", 365, 515);
+  }
+  function drawBrain() {
+    const q = game.question;
+    roundRect(100, 145, 760, 145, 24, "#183a42dd");
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "bold 44px system-ui";
+    ctx.fillText(q.text, 480, 232);
+    q.choices.forEach((choice, i) => {
+      const x = 155 + i * 177;
+      roundRect(x, 330, 155, 88, 18, ["#ffda78", "#a8ec9e", "#8fd9f5", "#ff9fbd"][i]);
+      ctx.fillStyle = "#15352e"; ctx.font = "bold 34px system-ui";
+      ctx.fillText(String(choice), x + 77, 385);
+    });
+    ctx.textAlign = "start";
+    ctx.fillStyle = "#fff"; ctx.font = "bold 20px system-ui";
+    ctx.fillText(`🔥 कॉम्बो ${game.combo}`, 400, 470);
+  }
+  function drawTarget() {
+    ctx.textAlign = "center";
+    if (game.target) {
+      const t = game.target;
+      ctx.fillStyle = "#ffda54"; ctx.beginPath(); ctx.arc(t.x, t.y, t.r + 12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#f26377"; ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(t.x, t.y, t.r * .46, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#f26377"; ctx.beginPath(); ctx.arc(t.x, t.y, t.r * .19, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = "#fff"; ctx.font = "bold 26px system-ui";
+    ctx.fillText("लक्ष्य पर टैप करो!", 480, 465); ctx.textAlign = "start";
+  }
+
+  function finishGame() {
+    if (!game || game.over) return;
+    game.over = true; cancelAnimationFrame(animation);
+    const level = game.level, score = Math.floor(game.score);
+    const stars = score >= 170 ? 3 : score >= 85 ? 2 : 1;
+    const reward = Math.max(8, Math.floor(score / 5) + stars * 3);
+    const oldStars = state.stars[level];
+    state.stars[level] = Math.max(oldStars, stars);
+    state.scores[level] = Math.max(state.scores[level], score);
+    state.best = Math.max(state.best, score);
+    state.coins += reward;
+    persist(); renderMap();
+    show("result");
+    const isLast = level === 9;
+    resultView.innerHTML = `
+      <h2 class="section-title">${stars === 3 ? "कमाल का मिशन! 🎉" : "मिशन पूरा! 🌟"}</h2>
+      <p>तुम्हारा स्कोर: <strong>${score}</strong> &nbsp; ${"⭐".repeat(stars)}</p>
+      <p>इनाम: <strong>🪙 ${reward}</strong> &nbsp; • &nbsp; रिकॉर्ड: <strong>${state.scores[level]}</strong></p>
+      <p>${stars > oldStars ? "नया स्टार रिकॉर्ड! अपना अगला मिशन जारी रखो।" : "एक और कोशिश करके अपना रिकॉर्ड तोड़ो!"}</p>
+      <div class="toolbar">
+        <button class="btn" id="againBtn">🔁 फिर खेलो</button>
+        ${!isLast ? '<button class="btn secondary" id="nextBtn">अगला लेवल ➜</button>' : ""}
+        <button class="btn secondary" id="resultMapBtn">🗺️ लेवल मैप</button>
+        <button class="btn pink" id="resultShopBtn">🎁 दुकान</button>
+      </div>`;
+    $("againBtn").onclick = () => startGame(level);
+    if (!isLast) $("nextBtn").onclick = () => startGame(level + 1);
+    $("resultMapBtn").onclick = () => { show("map"); renderMap(); };
+    $("resultShopBtn").onclick = () => { show("shop"); renderShop(); };
+    sound(stars === 3 ? 880 : 580, .18);
+  }
+
+  function sound(freq, duration) {
+    if (!state.sound) return;
+    try {
+      audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.type = "sine"; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(.08, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + duration);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + duration);
+    } catch (_) {}
+  }
+
+  $("mapBtn").addEventListener("click", () => { cancelAnimationFrame(animation); show("map"); renderMap(); });
+  $("shopBtn").addEventListener("click", () => { cancelAnimationFrame(animation); show("shop"); renderShop(); });
+  $("soundBtn").addEventListener("click", () => { state.sound = !state.sound; persist(); });
+  $("leftBtn").addEventListener("click", () => moveLane(-1));
+  $("rightBtn").addEventListener("click", () => moveLane(1));
+  $("quitBtn").addEventListener("click", () => { cancelAnimationFrame(animation); show("map"); renderMap(); });
+  window.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") moveLane(-1);
+    if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") moveLane(1);
+    if (e.key === "Escape" && game) { cancelAnimationFrame(animation); show("map"); renderMap(); }
+  });
+
+  persist(); renderMap();
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+  }
+})();
+</script>
+</body>
+</html>
